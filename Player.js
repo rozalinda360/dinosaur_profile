@@ -3,7 +3,6 @@ export default class Player {
     WALK_ANIMATION_TIMER = 200;
     walkAnimationTimer = this.WALK_ANIMATION_TIMER;
     dinoRunImages = [];
-
     jumpPressed = false;
     jumpInProgress = false;
     falling= false;
@@ -19,7 +18,8 @@ export default class Player {
         this.minJumpHeight = minJumpHeight;
         this.maxJumpHeight = maxJumpHeight;
         this.scaleRatio = scaleRatio;
-        
+        this.runningSound = new Audio('./SFX/running.mp3'); // Replace with the path to your running sound effect
+        this.jumpSound = new Audio('./SFX/jump.wav');
         //setting the position of dino
         this.x = 10*scaleRatio;
         this.y = this.canvas.height-this.height - 1.5*scaleRatio;
@@ -28,6 +28,7 @@ export default class Player {
         this.standingStillImage = new Image();
         this.standingStillImage.src = "img/standing_still.png";
         this.image = this.standingStillImage;
+        this.isRunning = false;
 
         const dinoRunImage1 = new Image();
         dinoRunImage1.src = 'img/dino_run1.png';
@@ -59,14 +60,15 @@ export default class Player {
 
     update(gameSpeed,frameTimeDelta){
         this.run(gameSpeed,frameTimeDelta);
+        
         if(this.jumpInProgress){
             this.image= this.standingStillImage;
         }
         this.jump(frameTimeDelta);
-
     }
 
-    run(gameSpeed,frameTimeDelta){  
+    run(gameSpeed,frameTimeDelta){
+        this.playRunningSound();
         if(this.walkAnimationTimer <= 0){
             if(this.image === this.dinoRunImages[0]){
                 this.image = this.dinoRunImages[1];
@@ -75,13 +77,18 @@ export default class Player {
             }
             
             this.walkAnimationTimer = this.WALK_ANIMATION_TIMER;
+
         }
 
         this.walkAnimationTimer -= frameTimeDelta * gameSpeed
+    
     }
 
     jump(frameTimeDelta){
+        
         if(this.jumpPressed){
+            this.pauseRunningSound();
+            this.playJumpSound();
             this.jumpInProgress = true;
         }
     
@@ -127,5 +134,22 @@ export default class Player {
     touchend = ()=>{
         this.jumpPressed = false;
     };
+
+    playRunningSound() {
+        this.runningSound.play();
+      }
+
+    pauseRunningSound(){
+        this.runningSound.pause();
+
+    }
+    playJumpSound() {
+        if (this.jumpPressed && !this.jumpInProgress){
+        this.jumpSound.play();
+    }}
+      
+    pauseJumpSound() {
+        this.jumpSound.pause();
+    }
 
 }

@@ -2,13 +2,15 @@ import Player from "./Player.js";
 import Ground from "./Ground.js";
 import CactiController from "./CactiController.js";
 import Score from "./Score.js";
-import Coin from "./Coin.js";
+import CoinController from "./CoinController.js"
+import PortalController from "./PortalController.js";
+import NavPage from "./NavPage.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 const GAME_SPEED_START = 1; // 1.0
-const GAME_SPEED_INCREMENT = 0.00001;
+const GAME_SPEED_INCREMENT = 0.000005;
 
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 200;
@@ -24,9 +26,9 @@ const GROUND_HEIGHT = 24;
 const GROUND_AND_CACTUS_SPEED = 0.5;
 
 const CACTI_CONFIG = [
-  { width: 48 / 1.5, height: 100 / 1.5, image: "images/cactus_1.png" },
-  { width: 98 / 1.5, height: 100 / 1.5, image: "images/cactus_2.png" },
-  { width: 68 / 1.5, height: 70 / 1.5, image: "images/cactus_3.png" },
+  { width: 48 / 1.5, height: 100 / 1.5, image: "img/cactus_1.png" },
+  { width: 98 / 1.5, height: 100 / 1.5, image: "img/cactus_2.png" },
+  { width: 68 / 1.5, height: 70 / 1.5, image: "img/cactus_3.png" },
 ];
 
 //Game Objects
@@ -34,13 +36,20 @@ let player = null;
 let ground = null;
 let cactiController = null;
 let score = null;
+let coinController = null;
+let portalController = null;
+let navPage = null;
 
 let scaleRatio = null;
 let previousTime = null;
 let gameSpeed = GAME_SPEED_START;
 let gameOver = false;
+let enterPortal = false;
 let hasAddedEventListenersForRestart = false;
 let waitingToStart = true;
+let portalSound = new Audio("./SFX/portal.mp3");
+let isEntering = false;
+
 
 function createSprites() {
   const playerWidthInGame = PLAYER_WIDTH * scaleRatio;
@@ -69,6 +78,11 @@ function createSprites() {
     scaleRatio
   );
 
+  navPage = new NavPage(
+    ctx,
+    GAME_WIDTH,
+    GAME_HEIGHT,
+    scaleRatio);
 
   const cactiImages = CACTI_CONFIG.map((cactus) => {
     const image = new Image();
@@ -87,6 +101,16 @@ function createSprites() {
     GROUND_AND_CACTUS_SPEED
   );
 
+  coinController = new CoinController(
+    ctx,
+    scaleRatio,
+    GROUND_AND_CACTUS_SPEED
+  );
+  portalController = new PortalController(
+    ctx,
+    scaleRatio,
+    GROUND_AND_CACTUS_SPEED
+  );
   score = new Score(ctx, scaleRatio);
 }
 
@@ -125,8 +149,8 @@ function getScaleRatio() {
 }
 
 function showGameOver() {
-  const fontSize = 70 * scaleRatio;
-  ctx.font = `${fontSize}px Verdana`;
+  const fontSize = 50 * scaleRatio;
+  ctx.font = `${fontSize}px GameFont`;
   ctx.fillStyle = "grey";
   const x = canvas.width / 4.5;
   const y = canvas.height / 2;
@@ -148,16 +172,18 @@ function reset() {
   hasAddedEventListenersForRestart = false;
   gameOver = false;
   waitingToStart = false;
+  enterPortal = false;
   ground.reset();
   cactiController.reset();
-  coin.reset();
+  coinController.reset();
+  portalController.reset();
   score.reset();
   gameSpeed = GAME_SPEED_START;
 }
 
 function showStartGameText() {
-  const fontSize = 40 * scaleRatio;
-  ctx.font = `${fontSize}px Verdana`;
+  const fontSize = 20 * scaleRatio;
+  ctx.font = `${fontSize}px GameFont`;
   ctx.fillStyle = "grey";
   const x = canvas.width / 14;
   const y = canvas.height / 2;
@@ -181,30 +207,60 @@ function gameLoop(currentTime) {
   }
   const frameTimeDelta = currentTime - previousTime;
   previousTime = currentTime;
-
   clearScreen();
 
-  if (!gameOver && !waitingToStart) {
+  if (!gameOver && !waitingToStart && !enterPortal) {
+    console.log(enterPortal);
     //Update game objects
     ground.update(gameSpeed, frameTimeDelta);
     cactiController.update(gameSpeed, frameTimeDelta);
+    coinController.update(gameSpeed, frameTimeDelta);
+    portalController.update(gameSpeed, frameTimeDelta);
     player.update(gameSpeed, frameTimeDelta);
     score.update(frameTimeDelta);
     updateGameSpeed(frameTimeDelta);
   }
 
   if (!gameOver && cactiController.collideWith(player)) {
+    player.pauseRunningSound();
+    cactiController.playCollisionSound(); // Play the collision sound effect
     gameOver = true;
+    enterPortal = false;
     setupGameReset();
     score.setHighScore();
   }
 
-  //Draw game objects
+
+  if (coinController.collideWith(player)) {
+    console.log(coinController.coinCount());
+  }
+
+  if (portalController.collideWith(player)) {
+    if (!isEntering){
+      enterPortal = true;
+      portalSound.play();
+      player.pauseRunningSound();
+      coinController.pauseCollisionSound();
+      player.pauseJumpSound();
+      isEntering = true;
+    }
+    if (isEntering && !portalSound.ended){
+      portalController.updatePortalEntering();
+      }else{
+        navPage.drawBg();
+        navPage.drawText();
+      }
+    }
+
+
+if (!enterPortal){
   ground.draw();
   cactiController.draw();
+  coinController.draw();
+  portalController.draw();
   player.draw();
   score.draw();
-
+}
   if (gameOver) {
     showGameOver();
   }

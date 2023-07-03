@@ -3,8 +3,8 @@ export default class Coin {
     constructor(ctx, x, y, speed, scaleRatio) {
         this.ctx = ctx;
         this.canvas = ctx.canvas;
-        this.width = 35 * scaleRatio;
-        this.height = 35 * scaleRatio;
+        this.width = 30 * scaleRatio;
+        this.height = 30 * scaleRatio;
         this.x = x;
         this.y = y;
         this.spriteWidth = 1151 / 6;
@@ -13,7 +13,7 @@ export default class Coin {
         this.scaleRatio = scaleRatio;
 
         this.image = new Image();
-        this.image.src = "images/coin_spritesheet.png";
+        this.image.src = "img/coin_spritesheet.png";
         this.frameX = 0;
         this.gameFrame = 0;
         this.staggerFrame = 5;
@@ -26,11 +26,9 @@ export default class Coin {
 
     draw() {
         this.position = Math.floor(this.gameFrame / this.staggerFrame) % 6;
-        console.log(this.position);
         this.frameX = this.spriteWidth * this.position;
         this.ctx.drawImage(this.image, this.frameX, 0, this.spriteWidth, this.spriteHeight, this.x, this.y, this.width, this.height);
         this.gameFrame++;
-        console.log("draw");
 
     }
 
@@ -39,7 +37,7 @@ export default class Coin {
     }
 
     collideWith(sprite) {
-        const adjustBy = 1.4;
+        const adjustBy = 1;
         if (
             sprite.x < this.x + this.width / adjustBy &&
             sprite.x + sprite.width / adjustBy > this.x &&
@@ -51,4 +49,5 @@ export default class Coin {
             return false;
         }
     }
+
 }
